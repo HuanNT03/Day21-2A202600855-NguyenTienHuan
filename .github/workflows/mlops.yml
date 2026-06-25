@@ -61,8 +61,11 @@ jobs:
         # TODO 2: Ghi noi dung credentials ra file tam va set bien moi truong xac thuc.
         run: |
           python -c "
-          import json, os
-          creds = json.loads('''${{ secrets.CLOUD_CREDENTIALS }}''')
+          import ast, json, os
+          try:
+              creds = ast.literal_eval('''${{ secrets.CLOUD_CREDENTIALS }}''')
+          except Exception:
+              creds = json.loads('''${{ secrets.CLOUD_CREDENTIALS }}''')
           with open(os.environ['GITHUB_ENV'], 'a') as f:
               f.write(f'AWS_ACCESS_KEY_ID={creds[\"aws_access_key_id\"]}\n')
               f.write(f'AWS_SECRET_ACCESS_KEY={creds[\"aws_secret_access_key\"]}\n')
