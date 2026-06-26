@@ -168,7 +168,19 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            # Restart service mlops-serve tren VM.
+            # Update Python packages on the VM
+            pip3 install --user pandas numpy scikit-learn joblib fastapi uvicorn boto3
+            
+            # Restart service mlops-serve tren VM
             sudo systemctl restart mlops-serve
             sleep 5
-            curl -sf http://localhost:8000/health && echo "Health check passed." || exit 1
+            
+            # Health check with diagnostic log fallback
+            if curl -sf http://localhost:8000/health; then
+              echo "Health check passed."
+            else
+              echo "Health check failed! Printing service logs for diagnostics:"
+              sudo systemctl status mlops-serve --no-pager
+              sudo journalctl -u mlops-serve -n 50 --no-pager
+              exit 1
+            fi
