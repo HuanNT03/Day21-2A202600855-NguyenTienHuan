@@ -168,18 +168,27 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            # Update Python packages on the VM (using --break-system-packages for PEP 668 compliance)
-            pip3 install --break-system-packages --user pandas numpy scikit-learn joblib fastapi uvicorn boto3
+            # Install Python packages globally on the VM
+            sudo pip3 install --break-system-packages pandas numpy scikit-learn joblib fastapi uvicorn boto3
             
             # Restart service mlops-serve tren VM
             sudo systemctl restart mlops-serve
-            sleep 5
             
-            # Health check with diagnostic log fallback
-            if curl -sf http://localhost:8000/health; then
-              echo "Health check passed."
-            else
-              echo "Health check failed! Printing service logs for diagnostics:"
+            # Wait for server to start and run health check
+            echo "Waiting for mlops-serve to start..."
+            success=false
+            for i in {1..15}; do
+              if curl -sf http://localhost:8000/health; then
+                echo "Health check passed."
+                success=true
+                break
+              fi
+              echo "Server not ready yet, retrying in 2 seconds (attempt $i/15)..."
+              sleep 2
+            done
+            
+            if [ "$success" = false ]; then
+              echo "Health check failed after 30 seconds! Printing service status and logs:"
               sudo systemctl status mlops-serve --no-pager
               sudo journalctl -u mlops-serve -n 50 --no-pager
               exit 1
