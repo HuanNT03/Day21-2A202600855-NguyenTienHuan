@@ -168,8 +168,8 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            # Update Python packages on the VM
-            pip3 install --user pandas numpy scikit-learn joblib fastapi uvicorn boto3
+            # Update Python packages on the VM (using --break-system-packages for PEP 668 compliance)
+            pip3 install --break-system-packages --user pandas numpy scikit-learn joblib fastapi uvicorn boto3
             
             # Restart service mlops-serve tren VM
             sudo systemctl restart mlops-serve
