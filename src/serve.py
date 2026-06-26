@@ -3,6 +3,56 @@ from pydantic import BaseModel
 import boto3
 import joblib
 import os
+import sys
+import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
+from types import ModuleType
+
+class WineFeatureExtractor(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        X_arr = np.asarray(X)
+
+        fixed_acidity = X_arr[:, 0]
+        volatile_acidity = X_arr[:, 1]
+        citric_acid = X_arr[:, 2]
+        free_sulfur_dioxide = X_arr[:, 5]
+        total_sulfur_dioxide = X_arr[:, 6]
+        density = X_arr[:, 7]
+        sulphates = X_arr[:, 9]
+        alcohol = X_arr[:, 10]
+
+        # Engineered features
+        sulfur_ratio = free_sulfur_dioxide / (total_sulfur_dioxide + 1e-5)
+        acid_ratio = volatile_acidity / (fixed_acidity + 1e-5)
+        alc_density = alcohol / density
+        alc_sulphates = alcohol * sulphates
+        vol_alc = volatile_acidity * alcohol
+        total_acid = fixed_acidity + volatile_acidity + citric_acid
+
+        new_features = np.column_stack([
+            X_arr,
+            sulfur_ratio,
+            acid_ratio,
+            alc_density,
+            alc_sulphates,
+            vol_alc,
+            total_acid
+        ])
+        return new_features
+
+# Inject to handle unpickling namespaces
+sys.modules["__main__"].WineFeatureExtractor = WineFeatureExtractor
+try:
+    src_mod = ModuleType("src")
+    sys.modules["src"] = src_mod
+    train_mod = ModuleType("src.train")
+    train_mod.WineFeatureExtractor = WineFeatureExtractor
+    sys.modules["src.train"] = train_mod
+except Exception:
+    pass
 
 app = FastAPI()
 

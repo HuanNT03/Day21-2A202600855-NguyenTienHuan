@@ -150,6 +150,16 @@ jobs:
     needs: eval
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy serve.py to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          source: "src/serve.py"
+          target: "/home/${{ secrets.VM_USER }}/"
 
       - name: SSH deploy to VM
         uses: appleboy/ssh-action@v1.0.3
@@ -158,9 +168,7 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            # TODO 7: Restart service mlops-serve tren VM.
-            # TODO 8: Cho server san sang roi goi curl /health de xac nhan.
-            #         Neu health check that bai sau nhieu lan thu, thoat voi exit 1.
+            # Restart service mlops-serve tren VM.
             sudo systemctl restart mlops-serve
             sleep 5
             curl -sf http://localhost:8000/health && echo "Health check passed." || exit 1
